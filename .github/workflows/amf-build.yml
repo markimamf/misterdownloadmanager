@@ -1,0 +1,43 @@
+# AMF Download Manager - aplica a marca AMF e compila o instalador do Windows.
+name: AMF build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Marca AMF
+        shell: pwsh
+        run: python AMF_Rebrand.py --repo ${{ github.repository }}
+
+      - name: Toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - name: NASM
+        shell: pwsh
+        run: |
+          choco install nasm --version 2.16.3 --no-progress -y
+          "C:\Program Files\NASM" >> $env:GITHUB_PATH
+
+      - name: Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Compila o instalador
+        shell: pwsh
+        run: ./tools/installer/build.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: amf-windows
+          path: target/dist/*
